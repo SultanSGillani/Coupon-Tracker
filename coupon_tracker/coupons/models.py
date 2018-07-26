@@ -43,7 +43,6 @@ class CouponManager(models.Manager):
 		return self.filter(valid_until__lt=timezone.now())
 
 
-# Create your models here.
 class Coupon(models.Model):
 	coupon = models.ForeignKey('self', on_delete=models.CASCADE)
 	price = models.DecimalField(max_digits=8, decimal_places=2)
@@ -68,8 +67,8 @@ class Coupon(models.Model):
 	@property
 	def redeemed_at(self):
 		try:
-			return user.filter(redeemed_at__isnull=False).order_by('redeemed_at').last().redeemed_at
-		except user.through.DoesNotExist:
+			return User.filter(redeemed_at__isnull=False).order_by('redeemed_at').last().redeemed_at
+		except User.through.DoesNotExist:
 			return None
 
 	def redeem(self, user=None):
