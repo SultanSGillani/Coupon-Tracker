@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.dispatch import Signal
 
-user = settings.AUTH_USER_MODEL
+User = settings.AUTH_USER_MODEL
 
 COUPON_TYPES = (
 	('monetary', 'Money based coupon'),
@@ -52,7 +52,7 @@ class Coupon(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	type = models.CharField(max_length=20, choices=COUPON_TYPES)
 	valid_until = models.DateTimeField(blank=True, null=True)
-	user = models.ForeignKey(user, null=True, blank=True, on_delete=models.SET_NULL)
+	user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
 	redeemed_at = models.DateTimeField(blank=True, null=True)
 	objects = CouponManager()
 
