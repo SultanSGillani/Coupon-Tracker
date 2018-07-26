@@ -15,18 +15,16 @@ redeem_done = Signal(providing_args=["coupon"])
 
 
 class CouponManager(models.Manager):
-	def create_coupon(self, type, value, users=[], valid_until=None):
+	def create_coupon(self, type, value, user=None, valid_until=None):
 		coupon = self.create(
 			value=value,
+			user=user,
 			type=type,
 			valid_until=valid_until,
 		)
-		coupon = Coupon.objects.create_coupon(type, value, users, valid_until)
-		if not isinstance(users, list):
-			users = [users]
-		for user in users:
-			if user:
-				CouponUser(user=user, coupon=coupon).save()
+		coupon = Coupon.objects.create(type, value, user, valid_until)
+		if not isinstance(user, list):
+			Coupon(user=user, coupon=coupon).save()
 		return coupon
 
 	def create_coupons(self, quantity, type, value, valid_until=None):
