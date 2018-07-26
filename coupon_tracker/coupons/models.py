@@ -3,6 +3,8 @@ from django.utils import timezone
 from django.conf import settings
 from django.dispatch import Signal
 
+user = settings.AUTH_USER_MODEL
+
 COUPON_TYPES = (
 	('monetary', 'Money based coupon'),
 	('percentage', 'Percentage discount'),
@@ -45,13 +47,19 @@ class CouponManager(models.Manager):
 
 # Create your models here.
 class Coupon(models.Model):
+	coupon = models.ForeignKey('self', on_delete=models.CASCADE)
 	price = models.DecimalField(max_digits=8, decimal_places=2)
 	discount = models.DecimalField(max_digits=6, decimal_places=2)
 	store = models.CharField(max_length=200)
 	created_at = models.DateTimeField(auto_now_add=True)
 	type = models.CharField(max_length=20, choices=COUPON_TYPES)
 	valid_until = models.DateTimeField(blank=True, null=True)
+	user = models.ForeignKey(user, null=True, blank=True, on_delete=models.SET_NULL)
+	redeemed_at = models.DateTimeField(blank=True, null=True)
 	objects = CouponManager()
+
+	def __str__(self):
+		return str(self.user)
 
 	class Meta:
 		ordering = ['created_at']
@@ -62,31 +70,12 @@ class Coupon(models.Model):
 	@property
 	def redeemed_at(self):
 		try:
-			return self.users.filter(redeemed_at__isnull=False).order_by('redeemed_at').last().redeemed_at
-		except self.users.through.DoesNotExist:
+			return user.filter(redeemed_at__isnull=False).order_by('redeemed_at').last().redeemed_at
+		except user.through.DoesNotExist:
 			return None
 
 	def redeem(self, user=None):
-		try:
-			coupon_user = self.users.get(user=user)
-		except CouponUser.DoesNotExist:
-			try:  # silently fix unbouned or nulled coupon users
-				coupon_user = self.users.get(user__isnull=True)
-				coupon_user.user = user
-			except CouponUser.DoesNotExist:
-				coupon_user = CouponUser(coupon=self, user=user)
+		coupon_user = user.get(user=user)
 		coupon_user.redeemed_at = timezone.now()
 		coupon_user.save()
 		redeem_done.send(sender=self.__class__, coupon=self)
-
-
-class CouponUser(models.Model):
-	coupon = models.ForeignKey(Coupon, related_name='users', on_delete=models.CASCADE)
-	user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
-	redeemed_at = models.DateTimeField(blank=True, null=True)
-
-	class Meta:
-		unique_together = ('coupon', 'user')
-
-	def __str__(self):
-		return str(self.user)
